@@ -4,7 +4,7 @@ let editingId       = null;
 let deletingId      = null;
 
 /* ── Navigation ── */
-function showView(name) {
+function showView(name, forceReset = false) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
 
@@ -20,11 +20,14 @@ function showView(name) {
 
   if (name === 'dashboard') { loadStats(); loadRecentPatients(); }
   if (name === 'patients')  { loadPatients(); }
-  if (name === 'add' && !editingId) { resetForm(); }
+  if (name === 'add' && (forceReset || !editingId)) {
+    editingId = null;
+    resetForm();
+  }
 }
 
 document.querySelectorAll('.nav-item').forEach(btn => {
-  btn.addEventListener('click', () => showView(btn.dataset.view));
+  btn.addEventListener('click', () => showView(btn.dataset.view, btn.dataset.view === 'add'));
 });
 
 /* ── API helpers ── */
@@ -54,7 +57,7 @@ async function loadRecentPatients() {
     const recent   = patients.slice(0, 5);
     const wrap     = document.getElementById('dashboard-recent');
     if (!recent.length) {
-      wrap.innerHTML = '<div class="empty-state"><p>No patients yet. <a href="#" onclick="showView(\'add\')">Add the first one</a>.</p></div>';
+      wrap.innerHTML = '<div class="empty-state"><p>No patients yet. <a href="#" onclick="showView(\'add\', true)">Add the first one</a>.</p></div>';
       return;
     }
     wrap.innerHTML = renderTable(recent, true);
@@ -154,6 +157,30 @@ function resetForm() {
   document.getElementById('form-error').style.display = 'none';
   document.getElementById('save-label').textContent = 'Save & Predict';
   document.querySelectorAll('.field input').forEach(i => i.classList.remove('err'));
+  clearFieldErrors();
+}
+
+function clearFieldErrors() {
+  ['full_name', 'dob', 'email', 'glucose', 'haemoglobin', 'cholesterol'].forEach(name => {
+    const errorEl = document.getElementById(`error-${name}`);
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.style.display = 'none';
+    }
+  });
+}
+
+function setFieldError(fieldName, message) {
+  const errorEl = document.getElementById(`error-${fieldName}`);
+  const inputId = fieldName === 'haemoglobin' ? 'hb' : fieldName === 'full_name' ? 'name' : fieldName;
+  const inputEl = document.getElementById(`f-${inputId}`);
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+  }
+  if (inputEl) {
+    inputEl.classList.add('err');
+  }
 }
 
 function startEdit(id) {
