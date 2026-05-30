@@ -219,26 +219,73 @@ async function savePatient() {
   // Client-side quick check
   const errBox = document.getElementById('form-error');
   errBox.style.display = 'none';
+  clearFieldErrors();
   const missing = Object.entries(payload).filter(([,v]) => !v).map(([k]) => k);
   if (missing.length) {
-    errBox.textContent   = 'Please fill in: ' + missing.join(', ');
+    missing.forEach(field => setFieldError(field, 'This field is required.'));
+    errBox.textContent   = 'Please fix the highlighted fields.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  let invalid = false;
+  if (!EMAIL_RE.test(payload.email)) {
+    setFieldError('email', 'Please enter a valid email address.');
+    invalid = true;
+  }
+  if (payload.dob) {
+    const dobDate = new Date(payload.dob);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    if (Number.isNaN(dobDate.getTime())) {
+      setFieldError('dob', 'Invalid date format.');
+      invalid = true;
+    } else if (dobDate >= today) {
+      setFieldError('dob', 'Date of birth cannot be today or in the future.');
+      invalid = true;
+    }
+  }
+  ['glucose', 'haemoglobin', 'cholesterol'].forEach(field => {
+    const value = payload[field];
+    const number = parseFloat(value);
+    if (Number.isNaN(number)) {
+      setFieldError(field, 'Must be a numeric value.');
+      invalid = true;
+    } else if (number < 0) {
+      setFieldError(field, 'Value cannot be negative.');
+      invalid = true;
+    }
+  });
+  if (invalid) {
+    errBox.textContent   = 'Please fix the highlighted fields.';
     errBox.style.display = 'block';
     return;
   }
 
   setSaving(true);
   try {
+    const isNew = !editingId;
     let result;
     if (editingId) {
       result = await api(`/api/patients/${editingId}`, 'PUT', payload);
     } else {
       result = await api('/api/patients', 'POST', payload);
     }
+
     document.getElementById('f-remarks').textContent    = result.remarks;
     document.getElementById('remarks-section').style.display = 'block';
-    editingId = result.id; // stay in edit mode so user sees prediction
-    document.getElementById('save-label').textContent = 'Update & Re-predict';
     loadStats();
+    loadPatients();
+
+    if (isNew) {
+      editingId = result.id;
+      document.getElementById('form-title').textContent = 'Patient Saved';
+      document.getElementById('save-label').textContent = 'Update & Re-predict';
+    } else {
+      editingId = result.id;
+      document.getElementById('save-label').textContent = 'Update & Re-predict';
+    }
   } catch (e) {
     errBox.textContent   = e.message;
     errBox.style.display = 'block';

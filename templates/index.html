@@ -56,7 +56,7 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="search-input" placeholder="Search patients…" />
     </div>
-    <button class="btn-primary" id="add-btn" onclick="showView('add')">+ Add Patient</button>
+    <button class="btn-primary" id="add-btn" onclick="showView('add', true)">+ Add Patient</button>
   </header>
 
   <!-- ── VIEW: DASHBOARD ── -->
@@ -134,14 +134,17 @@
         <div class="field full">
           <label>Full Name <span class="req">*</span></label>
           <input type="text" id="f-name" placeholder="e.g. Priya Sharma" />
+          <div class="field-error" id="error-full_name"></div>
         </div>
         <div class="field">
           <label>Date of Birth <span class="req">*</span></label>
           <input type="date" id="f-dob" />
+          <div class="field-error" id="error-dob"></div>
         </div>
         <div class="field">
           <label>Email Address <span class="req">*</span></label>
           <input type="email" id="f-email" placeholder="patient@example.com" />
+          <div class="field-error" id="error-email"></div>
         </div>
 
         <div class="field-group full">
@@ -151,16 +154,19 @@
               <label>Glucose (mg/dL) <span class="req">*</span></label>
               <input type="number" id="f-glucose" placeholder="70 – 126" min="0" step="0.1" />
               <span class="field-hint">Normal: 70–100 mg/dL</span>
+              <div class="field-error" id="error-glucose"></div>
             </div>
             <div class="field">
               <label>Haemoglobin (g/dL) <span class="req">*</span></label>
               <input type="number" id="f-hb" placeholder="12 – 17.5" min="0" step="0.1" />
               <span class="field-hint">Normal: 12–17.5 g/dL</span>
+              <div class="field-error" id="error-haemoglobin"></div>
             </div>
             <div class="field">
               <label>Cholesterol (mg/dL) <span class="req">*</span></label>
               <input type="number" id="f-chol" placeholder="< 200 ideal" min="0" step="0.1" />
               <span class="field-hint">Normal: &lt; 200 mg/dL</span>
+              <div class="field-error" id="error-cholesterol"></div>
             </div>
           </div>
         </div>
