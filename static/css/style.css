@@ -340,6 +340,13 @@ body {
 }
 .field input:focus { border-color: var(--teal); }
 .field input.err   { border-color: var(--red); }
+.field-error {
+  display: none;
+  color: var(--red);
+  font-size: 12px;
+  margin-top: 6px;
+  min-height: 18px;
+}
 
 .field-group { background: #f8fafc; border-radius: 10px; padding: 16px; }
 .field-group-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 14px; }
