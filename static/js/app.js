@@ -206,8 +206,32 @@ function startEdit(id) {
   }
   document.getElementById('save-label').textContent = 'Update & Re-predict';
   document.getElementById('form-error').style.display = 'none';
+  clearFieldErrors();
 
   showView('add');
+}
+
+function parseApiValidationErrors(errorText) {
+  const errors = errorText.split(/;|\n/).map(s => s.trim()).filter(Boolean);
+  const mapping = {
+    email: ['email', 'invalid email'],
+    dob: ['date of birth', 'future date', 'today', 'dob'],
+    glucose: ['glucose', 'blood sugar', 'sugar'],
+    haemoglobin: ['haemoglobin', 'hemoglobin', 'hb'],
+    cholesterol: ['cholesterol'],
+  };
+
+  let matched = false;
+  errors.forEach(error => {
+    const lower = error.toLowerCase();
+    Object.entries(mapping).forEach(([field, keywords]) => {
+      if (keywords.some(keyword => lower.includes(keyword))) {
+        setFieldError(field, error);
+        matched = true;
+      }
+    });
+  });
+  return matched;
 }
 
 async function savePatient() {
@@ -291,7 +315,9 @@ async function savePatient() {
       document.getElementById('save-label').textContent = 'Update & Re-predict';
     }
   } catch (e) {
-    errBox.textContent   = e.message;
+    clearFieldErrors();
+    const matched = parseApiValidationErrors(e.message || '');
+    errBox.textContent = matched ? 'Please fix the highlighted fields.' : e.message;
     errBox.style.display = 'block';
   } finally {
     setSaving(false);
