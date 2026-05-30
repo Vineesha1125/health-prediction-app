@@ -168,11 +168,15 @@ function clearFieldErrors() {
       errorEl.style.display = 'none';
     }
   });
+  document.querySelectorAll('.field input').forEach(i => i.classList.remove('err'));
 }
 
 function setFieldError(fieldName, message) {
   const errorEl = document.getElementById(`error-${fieldName}`);
-  const inputId = fieldName === 'haemoglobin' ? 'hb' : fieldName === 'full_name' ? 'name' : fieldName;
+  const inputId = fieldName === 'haemoglobin' ? 'hb'
+    : fieldName === 'full_name' ? 'name'
+    : fieldName === 'cholesterol' ? 'chol'
+    : fieldName;
   const inputEl = document.getElementById(`f-${inputId}`);
   if (errorEl) {
     errorEl.textContent = message;
