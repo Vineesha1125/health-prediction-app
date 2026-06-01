@@ -4,6 +4,7 @@ from datetime import date, datetime
 import requests
 import os
 import re
+import calendar
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mira.db'
@@ -58,7 +59,7 @@ def validate_patient(data, partial=False):
             if dob >= date.today():
                 errors.append('Date of birth cannot be today or a future date')
         except ValueError:
-            errors.append('Invalid date format for dob (use YYYY-MM-DD)')
+            errors.append('Invalid date: this calendar date does not exist')
 
     for field in ['glucose', 'haemoglobin', 'cholesterol']:
         if field in data:
@@ -162,6 +163,11 @@ def create_patient():
     errors = validate_patient(data)
     if errors:
         return jsonify({'error': '; '.join(errors)}), 400
+
+    # Duplicate email validation
+    existing = Patient.query.filter_by(email=data['email'].strip().lower()).first()
+    if existing:
+        return jsonify({'error': 'A patient with this email already exists'}), 400
 
     dob = date.fromisoformat(data['dob'])
     patient = Patient(

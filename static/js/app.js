@@ -215,7 +215,7 @@ function parseApiValidationErrors(errorText) {
   const errors = errorText.split(/;|\n/).map(s => s.trim()).filter(Boolean);
   const mapping = {
     email: ['email', 'invalid email'],
-    dob: ['date of birth', 'future date', 'today', 'dob'],
+    dob: ['date of birth', 'future date', 'today', 'dob', 'invalid date', 'calendar date'],
     glucose: ['glucose', 'blood sugar', 'sugar'],
     haemoglobin: ['haemoglobin', 'hemoglobin', 'hb'],
     cholesterol: ['cholesterol'],
@@ -263,15 +263,49 @@ async function savePatient() {
     invalid = true;
   }
   if (payload.dob) {
-    const dobDate = new Date(payload.dob);
+    const dobStr = payload.dob.trim();
     const today = new Date();
     today.setHours(0,0,0,0);
-    if (Number.isNaN(dobDate.getTime())) {
+
+    let year, month, day;
+    let matched = false;
+    const isoMatch = dobStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const usMatch = dobStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (isoMatch) {
+      year = parseInt(isoMatch[1], 10);
+      month = parseInt(isoMatch[2], 10);
+      day = parseInt(isoMatch[3], 10);
+      matched = true;
+    } else if (usMatch) {
+      month = parseInt(usMatch[1], 10);
+      day = parseInt(usMatch[2], 10);
+      year = parseInt(usMatch[3], 10);
+      matched = true;
+    } else {
+      const parsed = new Date(dobStr);
+      if (!Number.isNaN(parsed.getTime())) {
+        year = parsed.getFullYear();
+        month = parsed.getMonth() + 1;
+        day = parsed.getDate();
+        matched = true;
+      }
+    }
+
+    if (!matched) {
       setFieldError('dob', 'Invalid date format.');
       invalid = true;
-    } else if (dobDate >= today) {
-      setFieldError('dob', 'Date of birth cannot be today or in the future.');
-      invalid = true;
+    } else {
+      const dobDate = new Date(year, month - 1, day);
+      // Check calendar validity (e.g., Feb 30 -> rolls into Mar 2)
+      if (dobDate.getFullYear() !== year || (dobDate.getMonth() + 1) !== month || dobDate.getDate() !== day) {
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        setFieldError('dob', `Invalid date: ${months[month-1]} has only ${daysInMonth} days`);
+        invalid = true;
+      } else if (dobDate >= today) {
+        setFieldError('dob', 'Date of birth cannot be today or in the future.');
+        invalid = true;
+      }
     }
   }
   ['glucose', 'haemoglobin', 'cholesterol'].forEach(field => {
@@ -316,8 +350,11 @@ async function savePatient() {
     }
   } catch (e) {
     clearFieldErrors();
-    const matched = parseApiValidationErrors(e.message || '');
-    errBox.textContent = matched ? 'Please fix the highlighted fields.' : e.message;
+    const msg = e.message || 'Request failed';
+    const matched = parseApiValidationErrors(msg);
+    // Always show backend error message in the visible error box, and
+    // still highlight specific fields when we can map the message.
+    errBox.textContent = msg;
     errBox.style.display = 'block';
   } finally {
     setSaving(false);
