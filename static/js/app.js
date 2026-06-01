@@ -80,17 +80,17 @@ async function loadPatients(q = '') {
     } else {
       noMsg.style.display = 'none';
       tableWrap.querySelector('.data-table').style.display = '';
-      tbody.innerHTML = currentPatients.map(row).join('');
+      tbody.innerHTML = currentPatients.map((p, index) => row(p, index)).join('');
     }
   } catch (e) { console.error(e); }
 }
 
-function row(p) {
+function row(p, index) {
   const glucBadge = glucoseBadge(p.glucose);
   const cholBadge = cholBadge2(p.cholesterol);
   const hbBadge   = hbBadge2(p.haemoglobin);
   return `<tr>
-    <td>${p.id}</td>
+    <td>${index + 1}</td>
     <td><div class="cell-name">${esc(p.full_name)}</div></td>
     <td>${fmtDate(p.dob)}</td>
     <td>${esc(p.email)}</td>
@@ -99,13 +99,13 @@ function row(p) {
     <td>${cholBadge}</td>
     <td><div class="cell-remarks">${esc(p.remarks)}</div></td>
     <td>
-      <button class="btn-icon" title="View" onclick="viewPatient(${p.id})">
+      <button type="button" class="btn-icon" title="View" data-action="view" data-id="${p.id}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
-      <button class="btn-icon" title="Edit" onclick="startEdit(${p.id})">
+      <button type="button" class="btn-icon" title="Edit" data-action="edit" data-id="${p.id}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
-      <button class="btn-icon del" title="Delete" onclick="confirmDelete(${p.id}, '${esc(p.full_name)}')">
+      <button type="button" class="btn-icon del" title="Delete" data-action="delete" data-id="${p.id}" data-name="${esc(p.full_name)}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
       </button>
     </td>
@@ -118,15 +118,15 @@ function renderTable(patients, compact = false) {
     <thead><tr>
       <th>#</th><th>Name</th><th>DOB</th><th>Email</th>
       <th>Glucose</th><th>Hb</th><th>Cholesterol</th><th>Remarks</th>
-      ${compact ? '' : '<th>Actions</th>'}
+      <th>Actions</th>
     </tr></thead>
-    <tbody>${patients.map(p => compact ? rowCompact(p) : row(p)).join('')}</tbody>
+    <tbody>${patients.map((p, index) => compact ? rowCompact(p, index) : row(p, index)).join('')}</tbody>
   </table>`;
 }
 
-function rowCompact(p) {
+function rowCompact(p, index) {
   return `<tr>
-    <td>${p.id}</td>
+    <td>${index + 1}</td>
     <td><div class="cell-name">${esc(p.full_name)}</div></td>
     <td>${fmtDate(p.dob)}</td>
     <td>${esc(p.email)}</td>
@@ -134,12 +134,39 @@ function rowCompact(p) {
     <td>${hbBadge2(p.haemoglobin)}</td>
     <td>${cholBadge2(p.cholesterol)}</td>
     <td><div class="cell-remarks">${esc(p.remarks)}</div></td>
+    <td>
+      <button type="button" class="btn-icon" title="View" data-action="view" data-id="${p.id}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <button type="button" class="btn-icon" title="Edit" data-action="edit" data-id="${p.id}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button type="button" class="btn-icon del" title="Delete" data-action="delete" data-id="${p.id}" data-name="${esc(p.full_name)}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </button>
+    </td>
   </tr>`;
 }
 
 /* ── Search ── */
 document.getElementById('search-input').addEventListener('input', e => {
   loadPatients(e.target.value.trim());
+});
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+  const action = button.dataset.action;
+  const id = parseInt(button.dataset.id, 10);
+  if (!id) return;
+
+  if (action === 'view') {
+    viewPatient(id);
+  } else if (action === 'edit') {
+    startEdit(id);
+  } else if (action === 'delete') {
+    confirmDelete(id, button.dataset.name || '');
+  }
 });
 
 /* ── Form ── */
@@ -187,14 +214,21 @@ function setFieldError(fieldName, message) {
   }
 }
 
-function startEdit(id) {
-  const p = currentPatients.find(x => x.id === id);
-  if (!p) return;
-  editingId = id;
+async function startEdit(id) {
+  let p = currentPatients.find(x => x.id === id);
+  if (!p) {
+    try {
+      p = await api(`/api/patients/${id}`);
+    } catch (e) {
+      alert('Could not load patient for editing');
+      return;
+    }
+  }
 
+  editingId = id;
   document.getElementById('form-title').textContent = 'Edit Patient Record';
   document.getElementById('f-name').value    = p.full_name;
-  document.getElementById('f-dob').value     = p.dob;
+  document.getElementById('f-dob').value     = formatIsoToDdMmYyyy(p.dob);
   document.getElementById('f-email').value   = p.email;
   document.getElementById('f-glucose').value = p.glucose;
   document.getElementById('f-hb').value      = p.haemoglobin;
@@ -270,16 +304,16 @@ async function savePatient() {
     let year, month, day;
     let matched = false;
     const isoMatch = dobStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    const usMatch = dobStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    const euMatch = dobStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (isoMatch) {
       year = parseInt(isoMatch[1], 10);
       month = parseInt(isoMatch[2], 10);
       day = parseInt(isoMatch[3], 10);
       matched = true;
-    } else if (usMatch) {
-      month = parseInt(usMatch[1], 10);
-      day = parseInt(usMatch[2], 10);
-      year = parseInt(usMatch[3], 10);
+    } else if (euMatch) {
+      day = parseInt(euMatch[1], 10);
+      month = parseInt(euMatch[2], 10);
+      year = parseInt(euMatch[3], 10);
       matched = true;
     } else {
       const parsed = new Date(dobStr);
@@ -423,6 +457,12 @@ function fmtDate(iso) {
   const [y, m, d] = iso.split('-');
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+function formatIsoToDdMmYyyy(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
 }
 
 function glucoseBadge(v) {

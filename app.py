@@ -42,6 +42,19 @@ class Patient(db.Model):
 
 EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 
+def parse_dob_string(value):
+    if not isinstance(value, str):
+        raise ValueError('Invalid date')
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        parts = value.split('/')
+        if len(parts) != 3:
+            raise
+        day, month, year = parts
+        return date(int(year), int(month), int(day))
+
+
 def validate_patient(data, partial=False):
     errors = []
     fields = ['full_name', 'dob', 'email', 'glucose', 'haemoglobin', 'cholesterol']
@@ -55,7 +68,7 @@ def validate_patient(data, partial=False):
 
     if 'dob' in data:
         try:
-            dob = date.fromisoformat(data['dob'])
+            dob = parse_dob_string(data['dob'])
             if dob >= date.today():
                 errors.append('Date of birth cannot be today or a future date')
         except ValueError:
@@ -169,7 +182,7 @@ def create_patient():
     if existing:
         return jsonify({'error': 'A patient with this email already exists'}), 400
 
-    dob = date.fromisoformat(data['dob'])
+    dob = parse_dob_string(data['dob'])
     patient = Patient(
         full_name=data['full_name'].strip(),
         dob=dob,
@@ -228,7 +241,7 @@ def update_patient(pid):
         if field in data:
             setattr(p, field, data[field].strip())
     if 'dob' in data:
-        p.dob = date.fromisoformat(data['dob'])
+        p.dob = parse_dob_string(data['dob'])
     for field in ['glucose', 'haemoglobin', 'cholesterol']:
         if field in data and float(data[field]) != getattr(p, field):
             setattr(p, field, float(data[field]))
